@@ -1,0 +1,93 @@
+---
+title: "Streeter_Phelps_Model"
+output: 
+  word_document: default
+  html_notebook: default
+  html_document: default
+---
+
+```{r}
+rm(list = ls()) #Command to clean all the data
+library(deSolve) #Library used to solve differential equations
+```
+
+#1.Modification of Streeter-phelps equations, using the Thomas Model
+```{r}
+model= function(t, y, p) {
+  list(c(
+    BOD = -(p$k1-p$k3) * y[["BOD"]], #Implementation of Thomas Model (Equation 9 from Tutorial)
+    DO = -p$k1 * y[["BOD"]] * p$s + p$k2 * (DO_sat(p$temp) - y[["DO"]]) 
+    ))
+  }
+```
+
+This aspect defines O2 saturation as a function of temperature:
+```{r}
+DO_sat= function(T) {14.652 - 0.41022*T + 0.007991*T^2 - 7.7774e-5*T^3}
+```
+
+This aspects determines the values of k2
+```{r}
+u = 0.3 #Kindly Note: Flow velocity were taken to be 0.1, 0.5, & 0.7 to observe the effects on oxygen conc.
+h = 3 #Water depth
+T = 20 #Water temperature
+k2 = ((3.09*u^0.5)*(1.025^(T-20))^0.5)/(h^0.5)
+```
+
+
+Define parameters (p), initial values (y0), and times of interest (times):
+```{r}
+p = list(k1= 0.2, #Organic matter coefficient
+         k2= k2, 
+         s=3, 
+         k3=0.1,
+         temp= 20) 
+y0 = c(BOD=10,
+       DO=DO_sat(p$temp)) 
+
+times = seq(0, 30, by = 1) 
+```
+
+#Finding Numerical Solution
+```{r}
+res_new = lsoda(y = y0, 
+            times = times, 
+            func = model, 
+            parms = p) 
+```
+
+#Plotting the Results
+```{r}
+plot(res_new[,2], type="l", col="red", lwd=2, xlab="", ylab="", ylim=c(0,10), xlim=c(2,30)) #[,2] refers to row 2
+lines(as.vector(res_new[,3]), type="l", lwd=2, lty = "dashed")
+grid()
+title(ylab=expression("Concentration"~ ~"["~mg/dm^3~"]"),line=2, cex.lab=1)
+title(xlab = expression("Time [days]", line=1, cex.lab=1)) 
+title(main = "Numerical solution for BOD-DO Using Thomas Model")
+legend("topright", legend=c("BOD", "DO"), col=c("black", "red"), lwd=c(2,2), ncol=1)
+dev.copy(png,"Figures/Figure1.png", units='in', width=8.5,height=6,res=1200)
+dev.off()
+```
+
+```{r}
+write.table(res_new, file="thomasatBOD10_New.csv", sep=",")
+```
+
+#Evaluating K2 as a function of Temperature
+```{r}
+u = 0.3 #Flow velocity
+T = seq(0,30,by=1) #Water temperature
+h = 3 #Water depth
+k2 = ((3.09*u^0.5)*(1.025^(T-20))^0.5)/(h^0.5)
+```
+
+#Plotting the result 
+```{r}
+plot(T,k2,type="l",col="red",lwd=2,xlab="",ylab="")
+grid()
+title(ylab=expression("k2"~~"["~1/d~"]"),line=2, cex.lab=1)
+title(xlab = expression("Temperature"~~"["~degree~c~"]"),line=2,cex.lab=1)
+title(main = "K2 as a fucntion of T")
+legend("bottomright", legend=c("Aeration coefficient"), col=c("red"), lwd=c(2), ncol=1)
+dev.copy(png,"Figures/Figure2.png", units='in', width=8.5,height=6,res=1200)
+dev.off()

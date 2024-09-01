@@ -1,0 +1,59 @@
+---
+title: "Lotka"
+output:
+  word_document: default
+  html_notebook: default
+  html_document: default
+--- 
+
+```{r packages and commands}
+rm(list = ls())  #Command to clean all the data
+library(deSolve) #Library used to solve differential equations
+```
+
+#Modelling Lotka-Volterra equations
+```{r Lotka models creation}
+lotka_model = function(t, y, p) {
+  list(c(
+    x = p$alpha * y[["x"]] - p$beta * y[["x"]] * y[["y"]],#Equation 1 from the tutorial
+    y = p$delta * y[["x"]] * y[["y"]] - p$gamma * y[["y"]] #Equation 2 from the tutorial
+    ))
+  }
+```
+
+#Defining parameters (p), initial values (y), and times of interest (times):
+```{r parameters, initial values and time span for the model}
+p = list(alpha = 1, #Prey growth rate
+         beta = 2,  #Grazing efficiency coefficient
+         delta = 1, #Predator decay rate
+         gamma = 1) #Predator growth rate per prey unit
+
+y0 = c(x=1,         #Initial prey density
+       y=0.01)         #Initial predator density
+
+times = seq(0, 50, by = 1) 
+```
+
+#Finding numerical solution:
+```{r numerical solution for Lotka Volterra}
+lotka_model_res = lsoda(y = y0, #The initial (state) values
+            times = times, #Times at which explicit estimates for y are desired
+            func = lotka_model, #Numerical model
+            parms = p) #vector or list of parameters used in func
+```
+
+#Ploting the results
+Plot and save the results:
+```{r plotting the results for Lotka Volterra}
+plot(lotka_model_res[,2], type="l", col="red", lwd=2, xlab="", ylab="", ylim=c(0,6))
+lines(as.vector(lotka_model_res[,3]), type="l", col="blue", lwd=2)
+grid()
+title(ylab = expression("Population size"),line=2, cex.lab=1)
+title(xlab = expression("Time", line=1, cex.lab=1))
+title(main = "Numerical solution for Lotka-Volterra model")
+legend("topright", legend=c("Prey population", "Predator population"), col=c("red", "blue"), lwd=c(2,2), ncol=1)
+
+
+```
+
+
